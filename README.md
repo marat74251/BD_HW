@@ -118,4 +118,27 @@ CREATE TABLE Deliveries (
 Ссылка на файл с DDL-скриптами: <br />
 [DDL](https://github.com/marat74251/BD_HW/blob/head_bd/DDL-script.sql) <br />
 Так как файл с DML-скриптами слишком большой то на него будет только ссылка, чтобы не захламлять место: <br />
-[DML](https://github.com/marat74251/BD_HW/blob/head_bd/DML-script.sql)
+[DML](https://github.com/marat74251/BD_HW/blob/head_bd/DML-script.sql) <br />
+Перед выполнением скриптов прописать:
+``` SQL
+SET search_path TO sales_management;
+```
+В дальнейшем все скрипты будут указваться с учётом того что эта команда была прописана. <br />
+<br />
+№1: скрипт для получения информации о доставленных заказах <br />
+``` SQL
+SELECT o.order_id, c.customer_name, s.status_name, o.order_date
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+JOIN Statuses s ON o.status_id = s.status_id
+WHERE s.status_name = 'Доставлен';
+```
+№2: получение категорий товаров с наибольшей выручкой <br />
+``` SQL
+SELECT cat.category_name, SUM(p.product_price * oi.order_item_quantity) AS total_sum
+FROM Order_items oi
+JOIN Products p ON oi.product_id = p.product_id
+JOIN Categories cat ON p.category_id = cat.category_id
+GROUP BY cat.category_name
+ORDER BY total_sum DESC;
+```
