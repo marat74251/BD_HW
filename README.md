@@ -142,3 +142,93 @@ JOIN Categories cat ON p.category_id = cat.category_id
 GROUP BY cat.category_name
 ORDER BY total_sum DESC;
 ```
+№3: получение самых активных клиентов, сделавших более 3 заказов (таких нет (для проверки можно поменять 3 на 2, такие есть (3 поставил т.к. 2 выглядит не солидно))) <br />
+``` SQL
+SELECT c.customer_id, c.customer_name, COUNT(o.order_id) AS order_count
+FROM Customers c
+JOIN Orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.customer_name
+HAVING COUNT(o.order_id) > 3
+ORDER BY order_count DESC;
+```
+№4: получение топ-5 самых дорогих товаров на складе <br />
+``` SQL
+SELECT product_name, product_price, stock_quantity
+FROM Products
+WHERE stock_quantity > 0
+ORDER BY product_price DESC
+LIMIT 5;
+```
+№5: нахождение товаров, которые ни разу не были заказаны (таких нет) <br />
+``` SQL
+SELECT p.product_id, p.product_name
+FROM Products p
+WHERE NOT EXISTS (
+    SELECT *
+    FROM Order_items oi
+    WHERE oi.product_id = p.product_id
+);
+```
+№6: ранжирование клиентов по общей сумме, потраченной на заказы <br />
+``` SQL
+SELECT 
+    c.customer_id,
+    c.customer_name,
+    SUM(p.product_price * oi.order_item_quantity) AS total_spent,
+    RANK() OVER (ORDER BY SUM(p.product_price * oi.order_item_quantity) DESC) AS customer_rank
+FROM Customers c
+JOIN Orders o ON c.customer_id = o.customer_id
+JOIN Order_items oi ON o.order_id = oi.order_id
+JOIN Products p ON oi.product_id = p.product_id
+GROUP BY c.customer_id, c.customer_name
+ORDER BY total_spent DESC;
+```
+№7: вычисление средней стоимости заказа для каждого клиента <br />
+``` SQL
+SELECT 
+    c.customer_id,
+    c.customer_name,
+    (SELECT AVG(p.product_price * oi.order_item_quantity)
+     FROM Orders o
+     JOIN Order_items oi ON o.order_id = oi.order_id
+     JOIN Products p ON oi.product_id = p.product_id
+     WHERE o.customer_id = c.customer_id) AS avg_order_value
+FROM Customers c
+ORDER BY avg_order_value DESC NULLS LAST;
+```
+№8: анализ гипотетической иерархии сотрудников (по дате наёма) <br />
+``` SQL
+SELECT e1.employee_id, e1.employee_name, e1.hire_date,
+       e2.employee_id AS manager_id,
+       e2.employee_name AS manager_name,
+       e2.hire_date AS manager_hire_date
+FROM Employees e1
+JOIN Employees e2 ON e1.employee_id > e2.employee_id
+WHERE e1.hire_date > e2.hire_date;
+```
+№9: сравнение каждого заказа со средним чеком по всем заказам <br />
+``` SQL
+SELECT 
+    o.order_id,
+    c.customer_name,
+    SUM(p.product_price * oi.order_item_quantity) AS order_total,
+    AVG(SUM(p.product_price * oi.order_item_quantity)) OVER () AS avg_order_value,
+    ABS(SUM(p.product_price * oi.order_item_quantity) - AVG(SUM(p.product_price * oi.order_item_quantity)) OVER ()) AS diff_from_avg
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+JOIN Order_items oi ON o.order_id = oi.order_id
+JOIN Products p ON oi.product_id = p.product_id
+GROUP BY o.order_id, c.customer_name
+ORDER BY diff_from_avg DESC;
+```
+№10: нахождение товаров с ценой выше средней по их категории <br />
+``` SQL
+SELECT p.product_id, p.product_name, p.product_price, cat.category_id, cat.category_name
+FROM Products p
+JOIN Categories cat ON p.category_id = cat.category_id
+WHERE p.product_price > ANY (
+    SELECT AVG(product_price)
+    FROM Products
+    WHERE category_id = p.category_id
+);
+```
