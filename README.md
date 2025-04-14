@@ -29,7 +29,6 @@ CREATE TABLE Customers (
     last_modified TIMESTAMP
 );
 
--- Создание таблицы категорий
 CREATE TABLE Categories (
     category_id INT PRIMARY KEY,
     category_name VARCHAR(100) NOT NULL,
@@ -68,7 +67,6 @@ CREATE TABLE Employees (
     valid_to TIMESTAMP
 );
 
--- Создание таблицы продуктов
 CREATE TABLE Products (
     product_id INT PRIMARY KEY,
     product_name VARCHAR(100) NOT NULL,
