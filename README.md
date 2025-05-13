@@ -230,3 +230,32 @@ WHERE p.product_price > ANY (
     WHERE category_id = p.category_id
 );
 ```
+Представление "топ-5 самых покупаемых товаров" <br />
+``` SQL
+CREATE OR REPLACE VIEW top_selling_products AS
+SELECT 
+    p.product_id,
+    p.product_name,
+    SUM(oi.order_item_quantity) AS total_quantity_sold,
+    SUM(oi.order_item_quantity * p.product_price) AS total_revenue
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY total_quantity_sold DESC
+LIMIT 5;
+```
+Представление "статистика по клиентам" <br />
+``` SQL
+CREATE OR REPLACE VIEW customer_statistics AS
+SELECT 
+    c.customer_id,
+    c.customer_name,
+    COUNT(o.order_id) AS order_count,
+    SUM(p.product_price * oi.order_item_quantity) AS total_spent,
+    MAX(o.order_date) AS last_order_date
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+LEFT JOIN products p ON oi.product_id = p.product_id
+GROUP BY c.customer_id, c.customer_name;
+```
