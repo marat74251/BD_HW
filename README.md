@@ -268,3 +268,161 @@ CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 ``` SQL
 CREATE INDEX IF NOT EXISTS idx_orders_customer_date ON orders(customer_id, order_date);
 ```
+Функции и процедуры <br />
+1. Процедура добавления нового заказа <br />
+``` SQL
+CREATE OR REPLACE PROCEDURE add_new_order(
+    p_customer_id INT,
+    p_product_id INT,
+    p_quantity INT,
+    INOUT p_order_id INT DEFAULT NULL
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_price DECIMAL(10,2);
+BEGIN
+    SELECT product_price INTO v_price FROM products WHERE product_id = p_product_id;
+    
+    INSERT INTO orders(customer_id, order_date, status_id)
+    VALUES (p_customer_id, NOW(), 1)
+    RETURNING order_id INTO p_order_id;
+    
+    INSERT INTO order_items(order_id, product_id, order_item_quantity)
+    VALUES (p_order_id, p_product_id, p_quantity);
+    
+    UPDATE products 
+    SET stock_quantity = stock_quantity - p_quantity 
+    WHERE product_id = p_product_id;
+END;
+$$;
+```
+2. Функция расчета средней стоимости заказа по клиенту <br />
+``` SQL
+CREATE OR REPLACE FUNCTION get_avg_order_value(p_customer_id INT)
+RETURNS DECIMAL(10,2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_avg_value DECIMAL(10,2);
+BEGIN
+    SELECT AVG(p.product_price * oi.order_item_quantity) INTO v_avg_value
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    WHERE o.customer_id = p_customer_id;
+    
+    RETURN COALESCE(v_avg_value, 0);
+END;
+$$;
+```
+3. Функция генерации отчета по продажам за период <br />
+``` SQL
+CREATE OR REPLACE FUNCTION generate_sales_report_fn(
+    p_start_date DATE,
+    p_end_date DATE
+)
+RETURNS TABLE (
+    product_id INT,
+    product_name VARCHAR(100),
+    total_quantity NUMERIC,
+    total_revenue DECIMAL(10,2),
+    category_name VARCHAR(100)
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        p.product_id,
+        p.product_name,
+        SUM(oi.order_item_quantity)::NUMERIC AS total_quantity,
+        SUM(oi.order_item_quantity * p.product_price) AS total_revenue,
+        cat.category_name
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    JOIN categories cat ON p.category_id = cat.category_id
+    WHERE o.order_date BETWEEN p_start_date AND p_end_date
+    GROUP BY p.product_id, p.product_name, cat.category_name
+    ORDER BY total_revenue DESC;
+END;
+$$;
+```
+Создание триггеров <br />
+1. Триггер для логирования изменений цен <br />
+``` SQL
+CREATE OR REPLACE FUNCTION log_price_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF OLD.product_price != NEW.product_price THEN
+        INSERT INTO price_change_log(
+            product_id, 
+            old_price, 
+            new_price, 
+            change_date
+        )
+        VALUES (
+            NEW.product_id, 
+            OLD.product_price, 
+            NEW.product_price, 
+            NOW()
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS log_price_changes ON products;
+CREATE TRIGGER log_price_changes
+AFTER UPDATE OF product_price ON products
+FOR EACH ROW
+EXECUTE FUNCTION log_price_change();
+```
+2. Триггер проверки количества товара <br />
+``` SQL
+CREATE OR REPLACE FUNCTION check_stock_before_order()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_stock INT;
+BEGIN
+    SELECT stock_quantity INTO v_stock 
+    FROM products 
+    WHERE product_id = NEW.product_id;
+    
+    IF v_stock < NEW.order_item_quantity THEN
+        RAISE EXCEPTION 'Недостаточно товара на складе. Доступно: %, запрошено: %', 
+              v_stock, NEW.order_item_quantity;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS check_stock_before_order ON order_items;
+CREATE TRIGGER check_stock_before_order
+BEFORE INSERT ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION check_stock_before_order();
+```
+3. Триггер обновления даты изменения клиента <br />
+``` SQL
+CREATE OR REPLACE FUNCTION update_customer_timestamp()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.last_modified = NOW();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS update_customer_timestamp ON customers;
+CREATE TRIGGER update_customer_timestamp
+BEFORE UPDATE ON customers
+FOR EACH ROW
+EXECUTE FUNCTION update_customer_timestamp();
+```
