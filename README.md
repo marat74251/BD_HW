@@ -19,7 +19,7 @@ CREATE TABLE Statuses (
     description VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE Customers (
+CREATE TABLE IF NOT EXISTS Customers (
     customer_id INT PRIMARY KEY,
     customer_name VARCHAR(100) NOT NULL,
     customer_phone VARCHAR(20) NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE Customers (
     last_modified TIMESTAMP
 );
 
-CREATE TABLE Categories (
+CREATE TABLE IF NOT EXISTS Categories (
     category_id INT PRIMARY KEY,
     category_name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -37,7 +37,7 @@ CREATE TABLE Categories (
     valid_to TIMESTAMP
 );
 
-CREATE TABLE Supplier_companies (
+CREATE TABLE IF NOT EXISTS Supplier_companies (
     supplier_id INT PRIMARY KEY,
     supplier_name VARCHAR(100) NOT NULL,
     supplier_phone VARCHAR(20) NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE Supplier_companies (
     supplier_address TEXT NOT NULL
 );
 
-CREATE TABLE Contact_person (
+CREATE TABLE IF NOT EXISTS Contact_person (
     contact_person_id INT PRIMARY KEY,
     supplier_id INT NOT NULL,
     contact_name VARCHAR(100) NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE Contact_person (
     FOREIGN KEY (supplier_id) REFERENCES Supplier_companies(supplier_id)
 );
 
-CREATE TABLE Employees (
+CREATE TABLE IF NOT EXISTS Employees (
     employee_id INT PRIMARY KEY,
     employee_name VARCHAR(100) NOT NULL,
     employee_position VARCHAR(50) NOT NULL,
@@ -67,7 +67,7 @@ CREATE TABLE Employees (
     valid_to TIMESTAMP
 );
 
-CREATE TABLE Products (
+CREATE TABLE IF NOT EXISTS Products (
     product_id INT PRIMARY KEY,
     product_name VARCHAR(100) NOT NULL,
     category_id INT NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE Products (
     FOREIGN KEY (supplier_id) REFERENCES Supplier_companies(supplier_id)
 );
 
-CREATE TABLE Orders (
+CREATE TABLE IF NOT EXISTS Orders (
     order_id INT PRIMARY KEY,
     customer_id INT NOT NULL,
     order_date TIMESTAMP NOT NULL,
@@ -91,7 +91,7 @@ CREATE TABLE Orders (
     FOREIGN KEY (status_id) REFERENCES Statuses(status_id)
 );
 
-CREATE TABLE Order_items (
+CREATE TABLE IF NOT EXISTS Order_items (
     order_item_id INT PRIMARY KEY,
     order_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE Order_items (
     FOREIGN KEY (product_id) REFERENCES Products(product_id)
 );
 
-CREATE TABLE Deliveries (
+CREATE TABLE IF NOT EXISTS Deliveries (
     delivery_id INT PRIMARY KEY,
     order_id INT NOT NULL,
     employee_id INT NOT NULL,
