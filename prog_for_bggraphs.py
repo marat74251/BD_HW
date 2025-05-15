@@ -6,7 +6,7 @@ import seaborn as sns
 conn = psycopg2.connect(
     dbname="postgres",
     user="postgres",
-    password="utyz@2005",
+    password="...",
     host="localhost",
     port="5432"
 )
