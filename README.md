@@ -13,7 +13,7 @@ DDL-скрипты: <br />
 ``` SQL
 CREATE SCHEMA sales_management;
 SET search_path TO sales_management;
-CREATE TABLE Statuses (
+CREATE TABLE IF NOT EXISTS Statuses (
     status_id INT PRIMARY KEY,
     status_name VARCHAR(50) NOT NULL,
     description VARCHAR(50) NOT NULL
