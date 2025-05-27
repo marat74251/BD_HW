@@ -81,6 +81,14 @@ CREATE TABLE IF NOT EXISTS Products (
     FOREIGN KEY (supplier_id) REFERENCES Supplier_companies(supplier_id)
 );
 
+CREATE TABLE IF NOT EXISTS price_change_log (
+    log_id SERIAL PRIMARY KEY,
+    product_id INT NOT NULL REFERENCES products(product_id),
+    old_price DECIMAL(10,2) NOT NULL,
+    new_price DECIMAL(10,2) NOT NULL,
+    change_date TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS Orders (
     order_id INT PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -432,6 +440,6 @@ EXECUTE FUNCTION update_customer_timestamp();
 Гипотеза 1: Категории с большим количеством заказов имеют большую выручку. <br />
     Анализ: Гипотеза подтверждается. <br />
 Гипотеза 2: Средний чек различается между категориями. <br />
-    Анализ: Тест показывает p-value < 0.05, различия статистически значимы. <br />
+    Анализ: Тест показывает p-value > 0.05, различия между средним чеком незначительны. <br />
 Гипотеза 3: Клиенты с большим количеством заказов имеют более высокий средний чек. <br />
-    Анализ: Гипотеза частично подтверждается. <br />
+    Анализ: Нет существенной разницы в среднем чеке между клиентами разной активности. <br />
